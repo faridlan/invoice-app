@@ -1,0 +1,23 @@
+@startuml invoce_app
+
+entity orders{
+  *id int <<PK>>
+  --
+  order_date bigint
+  cus_name varchar
+  total int
+  dp int
+  pay int
+  rest_of_pay int
+}
+
+entity order_details {
+  *order_id int <<FK>>
+  --
+  quantity int
+  unit_price int
+}
+
+
+orders ||--o{ order_details
+@enduml
