@@ -14,6 +14,7 @@ entity orders{
 entity order_details {
   *order_id int <<FK>>
   --
+  product_name varchar
   quantity int
   unit_price int
 }
