@@ -31,7 +31,7 @@ func (repository *OrderRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, o
 	return &order, nil
 }
 
-func (repository *OrderRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, order domain.Order) error {
+func (repository *OrderRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, order *domain.Order) error {
 	SQL := "delet from orders where id = ?"
 	_, err := tx.ExecContext(ctx, SQL, order.Id)
 	if err != nil {
