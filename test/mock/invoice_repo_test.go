@@ -2,18 +2,16 @@ package mock
 
 import (
 	"context"
-	"database/sql"
-	"log"
+	"fmt"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/faridlan/invoice-app/app/helper"
 	"github.com/faridlan/invoice-app/app/model/domain"
 	"github.com/faridlan/invoice-app/app/repository"
 	"github.com/stretchr/testify/assert"
 )
 
-var i = &domain.Order{
+var order = domain.Order{
 	Id:        "INVNOV001",
 	OrderDate: 1667920980102,
 	CusName:   "Udin",
@@ -23,46 +21,27 @@ var i = &domain.Order{
 	RestOfPay: 1500000,
 }
 
-func NewMock() (*sql.DB, sqlmock.Sqlmock) {
+var orderRepository = repository.NewOrderRepository()
 
-	db, mock, err := sqlmock.New()
+func TestFindByIdSuccess(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
-		log.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+		t.Errorf("failed to open sqlmock database: %s", err)
 	}
-
-	return db, mock
-
-}
-
-func commitOrRollback(tx *sql.Tx) {
-	err := recover()
-	if err != nil {
-		errRollback := tx.Rollback()
-		helper.PanicIfErr(errRollback)
-		panic(err)
-	} else {
-		err := tx.Commit()
-		helper.PanicIfErr(err)
-	}
-}
-
-func TestFindById(t *testing.T) {
-	db, mock := NewMock()
-	tx, err := db.Begin()
-	helper.PanicIfErr(err)
-	defer commitOrRollback(tx)
 	defer db.Close()
 
-	repo := repository.OrderRepositoryImpl{}
+	orders := []string{"id", "order_date", "cus_name", "total", "dp", "pay", "rest_of_pay"}
+	rows := sqlmock.NewRows(orders).
+		AddRow(order.Id, order.OrderDate, order.CusName, order.Total, order.Dp, order.Pay, order.RestOfPay)
 
-	mock.ExpectBegin()
-	query := "SELECT id, order_date, cus_name, total, dp, pay, rest_of_pay FROM orders WHERE id = \\?"
-	mock.ExpectCommit()
-	rows := sqlmock.NewRows([]string{"id", "order_date", "cus_name", "total", "dp", "pay", "rest_of_pay"})
+	eq := mock.ExpectQuery("Select id, order_date, cus_name, total, dp, pay, rest_of_pay from orders where id = ?").WithArgs(order.Id).WillReturnRows(rows)
 
-	mock.ExpectQuery(query).WithArgs(i.Id).WillReturnRows(rows)
+	result, err := orderRepository.FindById(context.Background(), db, order.Id)
+	if err != nil {
+		t.Errorf("result error %s", err)
+	}
 
-	order, err := repo.FindById(context.Background(), tx, i.Id)
-	assert.NotNil(t, order)
-	assert.NoError(t, err)
+	assert.Nil(t, err)
+	fmt.Println(eq)
+	fmt.Println(result)
 }
